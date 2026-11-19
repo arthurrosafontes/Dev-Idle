@@ -246,7 +246,7 @@ const STATIONS = [
       { name: 'Gemini', n: 'Gemini', lang: 'Assistente de IA', t: ALL, sp: 7, base: 160000000, ai: true, bot: '#4285f4' },
       { name: 'ChatGPT', n: 'ChatGPT', lang: 'Assistente de IA', t: ALL, sp: 8, base: 250000000, ai: true, bot: '#10a37f' }] },
 ];
-const HUBS = [{ st: 3, price: 80000 }, { st: 7, price: 60000000 }];
+const HUBS = [{ st: 3, price: 80000 }, { st: 7, price: 60000000 }, { st: 2, price: 15000 }];
 HUBS.forEach(H => { const z0 = STATIONS[H.st].z0; Object.assign(H, { x0: 10, x1: 15, z0: z0 + 2.5, z1: z0 + 8.5, d0: z0 + 4.6, d1: z0 + 6.4, tx: 11.3, tz: z0 + 3.4 }); });
 const TX = [-6.5, 0, 6.5];
 STATIONS.forEach(st => { st.tz = st.z0 + 5.4; });
@@ -435,7 +435,7 @@ function newOrder(r) {
     const stages = [t]; const rest = G.filter(x => x !== t).sort(() => Math.random() - 0.5); stages.push(...rest.slice(0, Math.min(2, rest.length)));
     o.mega = { stages, si: 0 }; o.v = Math.round(stages.reduce((a, x) => a + TYPES[x].val, 0) * 1.6 * mk); o.c = MEGAC[Math.floor(Math.random() * MEGAC.length)];
   } else if (S.delivered >= 10 && vipN < 3 && Math.random() < Math.min(0.08, 0.03 + 0.005 * repLv())) {
-    o.vip = true; o.dl = S.gt + 120 + o.w * 4; o.c = VIPC[Math.floor(Math.random() * VIPC.length)];
+    o.vip = true; vipN++; o.dl = S.gt + 120 + o.w * 4; o.c = VIPC[Math.floor(Math.random() * VIPC.length)];
   }
   return o;
 }
@@ -1960,7 +1960,7 @@ function syncHubs() {
     o.leds.forEach((l, k) => l.material.color.set(Math.sin(time * 9 + k * 1.7 + h) > 0.2 ? '#22d3ee' : '#0b2533'));
   });
 }
-const OPN = [['Sofia', 'Rafael'], ['Marina', 'Otávio']];
+const OPN = [['Sofia', 'Rafael'], ['Marina', 'Otávio'], ['Bruna', 'Caíque']];
 function renderHub(h) {
   const H = HUBS[h], SH = S.hubs[h], rt = HRT[h];
   let html = `<h2>📧 Central de Envio Digital <button class="close" data-close>✕</button></h2>
