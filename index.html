@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Dev Studio">
 <meta name="theme-color" content="#0c0a16">
 <link rel="manifest" href="manifest.json">
@@ -295,7 +295,7 @@ const PETS = [
 const VISUP = [
   { nm: 'Cadeiras gamer', ic: '🪑', ds: 'Cadeiras com encosto neon', base: 800 },
   { nm: 'Setup RGB',      ic: '🌈', ds: 'Mesas com luz RGB por baixo', base: 4000 },
-  { nm: 'Paredes de vidro', ic: '🪟', ds: 'Divisórias de vidro entre as mesas', base: 15000 },
+  { nm: 'Piso neon premium', ic: '✨', ds: 'Moldura luminosa no chão das mesas', base: 15000 },
 ];
 const REP_T = [0, 30, 80, 160, 300, 500, 800, 1200, 1800, 2600];
 const VIPC = ['Unicórnio SaaS', 'Banco Nacional', 'Big Tech Global', 'Fundo de Investimento', 'Rede de Hospitais'];
@@ -347,7 +347,7 @@ function defS() {
     up: { bag: 0, shoes: 0, coffee: 0, mypc: 0, mkt: 0, train: 0 }, ints: STATIONS.map(() => ROLES.map(() => 0)), ilv: STATIONS.map(() => ROLES.map(() => 1)),
     ist: STATIONS.map(() => ROLES.map(() => ({ c: 0, d: 0, f: 0, e: 0 }))), tie: 0, shades: false, outfit: 'classic', owns: ['classic'], accOwn: ['shades'], accOn: {}, zw: 13.5,
     autoRate: 0, sound: true, t: Date.now(), types: ['site'], zoom: 1,
-    gt: 400, rep: 0, shares: 0, prestiges: 0, runEarned: 0, qa: 0, lounge: false, decor: [], pets: [], vis: STATIONS.map(() => 0), stCap: STATIONS.map(() => ({ p: 0, o: 0 })),
+    gt: 400, rep: 0, shares: 0, prestiges: 0, runEarned: 0, qa: 0, visib: 0, lounge: false, decor: [], pets: [], vis: STATIONS.map(() => 0), stCap: STATIONS.map(() => ({ p: 0, o: 0 })),
     day: { d: '', m: [] }, ach: {}, st: { vipOk: 0, maxCombo: 0, bugsFixed: 0, mega: 0, bugs: 0, mail: 0 }, hubs: HUBS.map(() => ({ own: false, ops: [0, 0], fibra: 0, premium: 0, sent: 0, earned: 0 })), hubPaid: HUBS.map(() => 0), hmin: [], curMin: 0, stEarn: STATIONS.map(() => 0),
     incRate: 0, alerts: true, notif: false };
 }
@@ -426,6 +426,8 @@ const printerCap = r => 8 + Math.floor(SEATS.filter(s => s.r === r && S.lv[s.idx
 const outCap = r => OUTMAX + ((S.stCap[r] && S.stCap[r].o) || 0) * 8;
 const printerUpCost = r => { const l = (S.stCap[r] && S.stCap[r].p) || 0; return l >= CAP_MAX ? Infinity : Math.floor(300 * IMULT[r] * Math.pow(1.85, l)); };
 const outUpCost = r => { const l = (S.stCap[r] && S.stCap[r].o) || 0; return l >= CAP_MAX ? Infinity : Math.floor(400 * IMULT[r] * Math.pow(1.85, l)); };
+const VISIB_MAX = 10;
+const visibCost = () => (S.visib || 0) >= VISIB_MAX ? Infinity : Math.floor(500 * Math.pow(2.4, S.visib || 0));
 const tableTypes = ti => { const s = new Set(); SEATS.forEach(x => { if (x.ti === ti && S.lv[x.idx] > 0) x.t.forEach(t => s.add(t)); }); return s; };
 const tableCanTake = (ti, t) => TABLES[ti].r < S.rooms && TR[ti].in.length < INMAX && tableTypes(ti).has(t);
 function stationTypes(r) { const s = new Set(); SEATS.forEach(x => { if (x.r === r && S.lv[x.idx] > 0) x.t.forEach(t => s.add(t)); }); if (r === 0 && !s.size) s.add('site'); return ALL.filter(t => s.has(t)); }
@@ -1586,7 +1588,7 @@ function update(dt) {
   while (customers.filter(c => !c.leaving).length < 3) spawnCustomer();
   for (let r = 0; r < S.rooms; r++) {
     spawnT[r] -= dt; const hired = SEATS.filter(s => s.r === r && S.lv[s.idx] > 0).length;
-    if (spawnT[r] <= 0) { const pw = SEATS.reduce((a, x) => a + (x.r === r && S.lv[x.idx] > 0 ? seatBase(x) : 0), 0); spawnT[r] = 3.2 / (1 + 0.35 * pw + 0.2 * S.up.mkt); if (inboxes[r].length < printerCap(r)) { const o = newOrder(r); if (o) inboxes[r].push(o); } }
+    if (spawnT[r] <= 0) { const pw = SEATS.reduce((a, x) => a + (x.r === r && S.lv[x.idx] > 0 ? seatBase(x) : 0), 0), vMult = 1 + 0.45 * (S.visib || 0), batch = 1 + Math.floor((S.visib || 0) / 2), cap = printerCap(r); spawnT[r] = 3.2 / ((1 + 0.35 * pw + 0.2 * S.up.mkt) * vMult); for (let k = 0; k < batch && inboxes[r].length < cap; k++) { const o = newOrder(r); if (o) inboxes[r].push(o); } }
   }
   autoTimer += dt; if (autoTimer >= 1) {
     autoTimer -= 1; S.autoRate = S.autoRate * 0.97 + autoAcc * 0.03; autoAcc = 0; S.incRate = S.incRate * 0.98 + incAcc * 0.02; incAcc = 0;
@@ -1710,7 +1712,12 @@ const visCost = r => (S.vis[r] || 0) >= 3 ? Infinity : VISUP[S.vis[r] || 0].base
 const presGain = () => Math.floor(Math.sqrt(S.runEarned / 100000));
 let presArm = false;
 function renderOffice() {
+    const vlv = S.visib || 0, vc = visibCost(), vbatch = 1 + Math.floor(vlv / 2);
     let h = `<h2>🏢 Escritório <button class="close" data-close>✕</button></h2><div class="sub">Moral da equipe: +${Math.round((moraleMult() - 1) * 100)}% de velocidade (decoração + pets)</div>
+    <h3>📣 Visibilidade da empresa</h3>
+    <div class="item"><div class="ic">📣</div><div class="tx"><div class="nm">Marketing e divulgação</div><div class="ds">+45% velocidade de chegada de pedidos por nível e +1 pedido por lote a cada 2 níveis · atual: +${vlv * 45}% (${vbatch}/vez)</div>
+    <div class="bar"><i style="width:${vlv / VISIB_MAX * 100}%"></i></div><div class="lv">Nível ${vlv}/${VISIB_MAX}</div></div>
+    ${vc === Infinity ? '<button class="btn dark" disabled>MÁX</button>' : `<button class="btn gold" data-visib="1" ${S.money < vc ? 'disabled' : ''}>${fmt(vc)}</button>`}</div>
     <h3>🛋️ Sala de descanso</h3>
     <div class="item"><div class="ic">🛋️</div><div class="tx"><div class="nm">Sala de descanso com videogame</div><div class="ds">Devs cansam 40% menos e recuperam energia 2x mais rápido</div></div>
     ${S.lounge ? '<button class="btn dark" disabled>✓</button>' : `<button class="btn" data-lounge="1" ${S.money < 2500 ? 'disabled' : ''}>${fmt(2500)}</button>`}</div>
@@ -1748,6 +1755,7 @@ $('ofBody').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b || b.disabled) return; const d = b.dataset;
   const pay = c => { if (S.money < c) return false; S.money -= c; sfx('buy'); return true; };
   if (d.lounge && !S.lounge && pay(2500)) { S.lounge = true; buildLounge(); afterBuild(); toast('🛋️ Sala de descanso pronta!'); }
+  else if (d.visib && pay(visibCost())) { S.visib = (S.visib || 0) + 1; toast(`📣 Visibilidade nível ${S.visib}! Mais pedidos chegando`); }
   else if (d.qa && pay(qaCost())) { S.qa++; toast(`🧪 QA nível ${S.qa}!`); }
   else if (d.decor) { const it = DECOR.find(x => x.id === d.decor); if (!S.decor.includes(it.id) && pay(it.p)) { S.decor.push(it.id); buildDecor(it.id); afterBuild(); toast(`${it.ic} ${it.nm} instalado!`); } }
   else if (d.pet) { const it = PETS.find(x => x.id === d.pet); if (!S.pets.includes(it.id) && pay(it.p)) { S.pets.push(it.id); spawnPet(it.id); toast(`${it.ic} ${it.nm} chegou no escritório!`); } }
@@ -1803,11 +1811,10 @@ function buildVis(r) {
   stTables(r).forEach(T => {
     if (L >= 2) { for (const sz of [-1, 1]) add(g, G.box(3.0, 0.05, 0.05), MB(ST.acc2), T.x, 0.68, T.z + sz * 0.86, false); for (const sx of [-1, 1]) add(g, G.box(0.05, 0.05, 1.7), MB(ST.acc), T.x + sx * 1.5, 0.68, T.z, false); add(g, G.box(3.4, 0.01, 2.2), MB(ST.acc2), T.x, 0.006, T.z, false).material = new THREE.MeshBasicMaterial({ color: ST.acc2, transparent: true, opacity: 0.25 }); }
   });
-  if (L >= 3) for (const x of [-3.25, 3.25]) {
-    add(g, G.box(0.08, 1.6, 2.4), GLASS, x, 0.8, ST.tz, false); add(g, G.box(0.1, 0.06, 2.4), MB(ST.acc), x, 1.62, ST.tz, false); add(g, G.box(0.1, 0.06, 2.4), MB('#c7cbd6'), x, 0.03, ST.tz, false);
-    if (!visObs[r]) obstacle(x, ST.tz, 0.2, 2.4, r);
-  }
-  if (L >= 3) visObs[r] = true;
+  if (L >= 3) stTables(r).forEach(T => {
+    for (const sz of [-1, 1]) add(g, G.box(4.6, 0.014, 0.08), MB(ST.acc), T.x, 0.008, T.z + sz * 1.9, false);
+    for (const sx of [-1, 1]) add(g, G.box(0.08, 0.014, 3.8), MB(ST.acc2), T.x + sx * 2.3, 0.008, T.z, false);
+  });
   mergeStatic(g);
 }
 const visObs = [], GLASS = new THREE.MeshBasicMaterial({ color: '#7dd3fc', transparent: true, opacity: 0.18, depthWrite: false });
@@ -2144,7 +2151,7 @@ function hud(dt) {
   if ($('clM').classList.contains('open')) { document.querySelectorAll('[data-pow]').forEach(b => { const it = POWERS.find(p => p.k === b.dataset.pow); b.disabled = S.money < powCost(it); });
     document.querySelectorAll('[data-buyo]').forEach(b => { const o = OUTFITS.find(o => o.id === b.dataset.buyo); b.disabled = o.p < 0 || S.money < o.p; }); document.querySelectorAll('[data-buya]').forEach(b => b.disabled = S.money < ACCS.find(a => a.id === b.dataset.buya).p); }
   if ($('hrM').classList.contains('open')) { document.querySelectorAll('#hrBody [data-hire]').forEach(b => b.disabled = S.money < iCost(hrOpen, +b.dataset.hire)); document.querySelectorAll('#hrBody [data-iup]').forEach(b => b.disabled = S.money < iUpCost(hrOpen, +b.dataset.iup)); document.querySelectorAll('#hrBody [data-pc]').forEach(b => b.disabled = S.money < printerUpCost(+b.dataset.pc)); document.querySelectorAll('#hrBody [data-oc]').forEach(b => b.disabled = S.money < outUpCost(+b.dataset.oc)); const tb = $('trainBtn'); if (tb) tb.disabled = S.money < trainCost(); }
-  if ($('ofM').classList.contains('open')) { document.querySelectorAll('#ofBody [data-pc]').forEach(b => b.disabled = S.money < printerUpCost(+b.dataset.pc)); document.querySelectorAll('#ofBody [data-oc]').forEach(b => b.disabled = S.money < outUpCost(+b.dataset.oc)); }
+  if ($('ofM').classList.contains('open')) { document.querySelectorAll('#ofBody [data-visib]').forEach(b => b.disabled = S.money < visibCost()); document.querySelectorAll('#ofBody [data-pc]').forEach(b => b.disabled = S.money < printerUpCost(+b.dataset.pc)); document.querySelectorAll('#ofBody [data-oc]').forEach(b => b.disabled = S.money < outUpCost(+b.dataset.oc)); }
 }
 
 // ============================ START ============================
