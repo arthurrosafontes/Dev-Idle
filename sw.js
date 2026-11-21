@@ -1,5 +1,15 @@
-const CACHE = 'devstudio3d-v9';
-const FILES = ['./', './index.html', './manifest.json', './icon-180.png', './icon-192.png', './icon-512.png', './three.module.min.js'];
+const CACHE = 'devstudio3d-v10';
+const FILES = [
+  './',
+  './index.html',
+  './manifest.json',
+  './icon-180.png',
+  './assets/icons/icon-192.png',
+  './assets/icons/icon-512.png',
+  './css/style.css',
+  './js/game.js',
+  './js/vendor/three.module.min.js'
+];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(k => Promise.all(k.filter(x => x !== CACHE).map(x => caches.delete(x))))); self.clients.claim(); });
 self.addEventListener('fetch', e => {
