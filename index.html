@@ -60,9 +60,9 @@ canvas{position:absolute;left:0;top:0;width:100%;height:100%;touch-action:none;d
 #tip{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom) + 14px);transform:translateX(-50%);
   background:#15121f;border:2px solid #3b2f5c;padding:8px 15px;border-radius:999px;font-weight:800;font-size:14px;
   pointer-events:none;white-space:nowrap;transition:opacity .3s;z-index:3;max-width:94vw;overflow:hidden;text-overflow:ellipsis}
-#toast{position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 140px);transform:translate(-50%,-20px);opacity:0;transition:.35s;
-  background:#ff2d95;color:#fff;padding:10px 16px;border-radius:14px;font-weight:900;font-size:15px;
-  pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.5);text-align:center;max-width:90%;z-index:4}
+#toast{position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 92px);transform:translate(-50%,-12px);opacity:0;transition:.3s;
+  background:#ff2d95;color:#fff;padding:6px 12px;border-radius:10px;font-weight:900;font-size:12px;line-height:1.25;
+  pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,.45);text-align:center;max-width:82%;z-index:4}
 #toast.show{opacity:1;transform:translate(-50%,0)}
 #floats{position:absolute;inset:0;pointer-events:none;z-index:2;overflow:hidden}
 .fl.sm{font-size:10px;color:#d8b4fe;opacity:.85}
@@ -2034,11 +2034,8 @@ window.addEventListener('resize', resize); window.addEventListener('orientationc
 if (window.visualViewport) window.visualViewport.addEventListener('resize', resize);
 
 function sync(dt) {
-  const zmin = STATIONS[S.rooms - 1].z0;
-  let lo = zmin - 1 + groundHalf * 0.7, hi = 8.5 - groundHalf * 0.8, tz = player.z + 0.6;
-  tz = lo > hi ? (lo + hi) / 2 : Math.max(lo, Math.min(hi, tz));
-  camT.x += (Math.max(-6.5, Math.min(12.5, player.x)) - camT.x) * Math.min(1, dt * 5);
-  camT.z += (tz - camT.z) * Math.min(1, dt * 5);
+  camT.x += (player.x - camT.x) * Math.min(1, dt * 5);
+  camT.z += (player.z - camT.z) * Math.min(1, dt * 5);
   camera.position.copy(camT).add(CAMV); camera.lookAt(camT);
   sun.position.set(camT.x + 6, 20, camT.z + 9); sun.target.position.copy(camT);
   updateDayNight(); syncPets(); syncHubs();
