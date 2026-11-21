@@ -347,7 +347,7 @@ function defS() {
     up: { bag: 0, shoes: 0, coffee: 0, mypc: 0, mkt: 0, train: 0 }, ints: STATIONS.map(() => ROLES.map(() => 0)), ilv: STATIONS.map(() => ROLES.map(() => 1)),
     ist: STATIONS.map(() => ROLES.map(() => ({ c: 0, d: 0, f: 0, e: 0 }))), tie: 0, shades: false, outfit: 'classic', owns: ['classic'], accOwn: ['shades'], accOn: {}, zw: 13.5,
     autoRate: 0, sound: true, t: Date.now(), types: ['site'], zoom: 1,
-    gt: 400, rep: 0, shares: 0, prestiges: 0, runEarned: 0, qa: 0, lounge: false, decor: [], pets: [], vis: STATIONS.map(() => 0),
+    gt: 400, rep: 0, shares: 0, prestiges: 0, runEarned: 0, qa: 0, lounge: false, decor: [], pets: [], vis: STATIONS.map(() => 0), stCap: STATIONS.map(() => ({ p: 0, o: 0 })),
     day: { d: '', m: [] }, ach: {}, st: { vipOk: 0, maxCombo: 0, bugsFixed: 0, mega: 0, bugs: 0, mail: 0 }, hubs: HUBS.map(() => ({ own: false, ops: [0, 0], fibra: 0, premium: 0, sent: 0, earned: 0 })), hubPaid: HUBS.map(() => 0), hmin: [], curMin: 0, stEarn: STATIONS.map(() => 0),
     incRate: 0, alerts: true, notif: false };
 }
@@ -369,7 +369,7 @@ function load() {
     S.ilv = di.ilv.map((a, r) => a.map((v, i) => (d.S.ilv && d.S.ilv[r] && d.S.ilv[r][i]) || 1));
     if (d.S.shades && S.accOn.shades === undefined) S.accOn.shades = true;
     S.hubs = defS().hubs.map((h, i) => Object.assign(h, (d.S.hubs && d.S.hubs[i]) || {})); S.hubPaid = defS().hubPaid.map((v, i) => (d.S.hubPaid && d.S.hubPaid[i]) || 0); hubTrayLoad = d.hubT || [];
-    S.st = Object.assign(defS().st, d.S.st || {}); S.vis = defS().vis.map((v, i) => (d.S.vis && d.S.vis[i]) || 0); S.stEarn = defS().stEarn.map((v, i) => (d.S.stEarn && d.S.stEarn[i]) || 0);
+    S.st = Object.assign(defS().st, d.S.st || {}); S.vis = defS().vis.map((v, i) => (d.S.vis && d.S.vis[i]) || 0); S.stCap = defS().stCap.map((c, i) => Object.assign(c, (d.S.stCap && d.S.stCap[i]) || {})); S.stEarn = defS().stEarn.map((v, i) => (d.S.stEarn && d.S.stEarn[i]) || 0);
     if (d.S.runEarned === undefined) S.runEarned = S.earned || 0;
     if (!d.S.zw) S.zw = Math.max(13.5, [8, 10.5, 13.5][d.S.zoom] || 13.5);
     S.rooms = Math.max(1, Math.min(STATIONS.length, S.rooms));
@@ -421,6 +421,11 @@ const spdOfI = n => iSpeed() * (1 + 0.1 * (iLv(n) - 1));
 const brewT = n => 1.6 / (1 + 0.1 * S.up.train) / (1 + 0.15 * (iLv(n) - 1));
 const boostT = n => BOOST_T + 3 * (iLv(n) - 1);
 function iPerk(k, lv) { return k === 'deliver' ? `carrega ${iCap() * 2 + (lv - 1) * 2} disquetes · +${(lv - 1) * 10}% velocidade` : k === 'carry' ? `carrega ${iCap() + Math.floor((lv - 1) / 2)} pedidos · +${(lv - 1) * 10}% velocidade` : `café em ${(1.6 / (1 + 0.1 * S.up.train) / (1 + 0.15 * (lv - 1))).toFixed(1)}s · efeito de ${BOOST_T + 3 * (lv - 1)}s · +${(lv - 1) * 10}% velocidade`; }
+const CAP_MAX = 10;
+const printerCap = r => 8 + Math.floor(SEATS.filter(s => s.r === r && S.lv[s.idx] > 0).length / 2) + ((S.stCap[r] && S.stCap[r].p) || 0) * 4;
+const outCap = r => OUTMAX + ((S.stCap[r] && S.stCap[r].o) || 0) * 8;
+const printerUpCost = r => { const l = (S.stCap[r] && S.stCap[r].p) || 0; return l >= CAP_MAX ? Infinity : Math.floor(300 * IMULT[r] * Math.pow(1.85, l)); };
+const outUpCost = r => { const l = (S.stCap[r] && S.stCap[r].o) || 0; return l >= CAP_MAX ? Infinity : Math.floor(400 * IMULT[r] * Math.pow(1.85, l)); };
 const tableTypes = ti => { const s = new Set(); SEATS.forEach(x => { if (x.ti === ti && S.lv[x.idx] > 0) x.t.forEach(t => s.add(t)); }); return s; };
 const tableCanTake = (ti, t) => TABLES[ti].r < S.rooms && TR[ti].in.length < INMAX && tableTypes(ti).has(t);
 function stationTypes(r) { const s = new Set(); SEATS.forEach(x => { if (x.r === r && S.lv[x.idx] > 0) x.t.forEach(t => s.add(t)); }); if (r === 0 && !s.size) s.add('site'); return ALL.filter(t => s.has(t)); }
@@ -1218,8 +1223,15 @@ function renderHR(r) {
       ${owned ? `<div class="lv">${statLine}</div><div class="bar"><i style="width:${(S.ilv[r][i] || 1) * 10}%"></i></div><div class="lv">⭐ Nv ${S.ilv[r][i] || 1}/10 · ${iPerk(R.k, S.ilv[r][i] || 1)}</div>` : ''}</div>
       ${owned ? (() => { const uc = iUpCost(r, i); return `<button class="btn gold" data-iup="${i}" ${uc === Infinity || S.money < uc ? 'disabled' : ''}>${uc === Infinity ? 'MÁX' : '⬆️ ' + fmt(uc)}</button>`; })() : `<button class="btn" data-hire="${i}">${fmt(iCost(r, i))}</button>`}</div>`;
   });
-  const tc = trainCost();
-  h += `<h3>Treinamento (vale para todas as estações)</h3>
+  const tc = trainCost(), pc = printerUpCost(r), oc = outUpCost(r), plv = S.stCap[r].p || 0, olv = S.stCap[r].o || 0;
+  h += `<h3>📦 Capacidade desta estação</h3>
+    <div class="item"><div class="ic">📥</div><div class="tx"><div class="nm">Impressora de pedidos</div><div class="ds">+4 pedidos na fila da impressora por nível · atual: ${printerCap(r)}</div>
+    <div class="bar"><i style="width:${plv / CAP_MAX * 100}%"></i></div><div class="lv">Nível ${plv}/${CAP_MAX}</div></div>
+    <button class="btn gold" data-pc="${r}" ${pc === Infinity || S.money < pc ? 'disabled' : ''}>${pc === Infinity ? 'MÁX' : fmt(pc)}</button></div>
+    <div class="item"><div class="ic">💾</div><div class="tx"><div class="nm">Bandejas de produtos prontos</div><div class="ds">+8 disquetes em todas as mesas deste setor por nível · atual: ${outCap(r)}</div>
+    <div class="bar"><i style="width:${olv / CAP_MAX * 100}%"></i></div><div class="lv">Nível ${olv}/${CAP_MAX}</div></div>
+    <button class="btn gold" data-oc="${r}" ${oc === Infinity || S.money < oc ? 'disabled' : ''}>${oc === Infinity ? 'MÁX' : fmt(oc)}</button></div>
+    <h3>Treinamento (vale para todas as estações)</h3>
     <div class="item"><div class="ic">🎓</div><div class="tx"><div class="nm">Treinamento de estagiários</div><div class="ds">+10% velocidade de andar e café · +1 item a cada 2 níveis</div>
     <div class="bar"><i style="width:${S.up.train * 10}%"></i></div><div class="lv">Nível ${S.up.train}/10 · carregam ${iCap()} itens</div></div>
     <button class="btn gold" id="trainBtn" ${tc === Infinity || S.money < tc ? 'disabled' : ''}>${tc === Infinity ? 'MÁX' : fmt(tc)}</button></div>
@@ -1240,6 +1252,10 @@ $('hrBody').addEventListener('click', e => {
   const u = e.target.closest('[data-iup]');
   if (u) { const i = +u.dataset.iup, r = hrOpen, c = iUpCost(r, i); if (S.money < c) return; S.money -= c; S.ilv[r][i] = (S.ilv[r][i] || 1) + 1; sfx('buy'); track('upgrade', 1);
     const n = interns.find(n => n.st === r && n.slot === i); if (n) burst(n.x, 1.6, n.z, '#facc15', 16); toast(`⭐ ${INAMES[r][i]} subiu para o nível ${S.ilv[r][i]}!`); renderHR(r); save(); return; }
+  const pbtn = e.target.closest('[data-pc]');
+  if (pbtn) { const r = +pbtn.dataset.pc, c = printerUpCost(r); if (S.money < c) return; S.money -= c; S.stCap[r].p++; sfx('buy'); track('upgrade', 1); toast(`📥 Impressora (${STATIONS[r].name}): agora cabe até ${printerCap(r)} pedidos!`); renderHR(hrOpen); save(); return; }
+  const obtn = e.target.closest('[data-oc]');
+  if (obtn) { const r = +obtn.dataset.oc, c = outUpCost(r); if (S.money < c) return; S.money -= c; S.stCap[r].o++; sfx('buy'); track('upgrade', 1); toast(`💾 Bandejas (${STATIONS[r].name}): agora cabem até ${outCap(r)} prontos!`); renderHR(hrOpen); save(); return; }
   if (e.target.id === 'trainBtn') { const c = trainCost(); if (S.money < c) return; S.money -= c; S.up.train++; sfx('buy'); track('upgrade', 1); renderHR(hrOpen); save(); }
 });
 // --- Closet do CEO ---
@@ -1530,7 +1546,7 @@ function updateWorkers(dt) {
     if (w.job) {
       if (w.prog < w.job.w) { const sp = seatSpeed(s); w.prog += sp * dt; st = sp > 0 ? 'work' : 'net'; }
       else if (!isFinal(w.job)) { advanceMega(w.job, s.x, s.z); w.job = null; w.prog = 0; sfx('done'); }
-      else if (tr.out.length < OUTMAX) { finalize(w.job, s.r); tr.out.push(w.job); w.job = null; w.prog = 0; sfx('done'); }
+      else if (tr.out.length < outCap(s.r)) { finalize(w.job, s.r); tr.out.push(w.job); w.job = null; w.prog = 0; sfx('done'); }
       else st = 'full';
     }
     w.state = st;
@@ -1570,7 +1586,7 @@ function update(dt) {
   while (customers.filter(c => !c.leaving).length < 3) spawnCustomer();
   for (let r = 0; r < S.rooms; r++) {
     spawnT[r] -= dt; const hired = SEATS.filter(s => s.r === r && S.lv[s.idx] > 0).length;
-    if (spawnT[r] <= 0) { const pw = SEATS.reduce((a, x) => a + (x.r === r && S.lv[x.idx] > 0 ? seatBase(x) : 0), 0); spawnT[r] = 3.2 / (1 + 0.35 * pw + 0.2 * S.up.mkt); if (inboxes[r].length < 8 + Math.floor(hired / 2)) { const o = newOrder(r); if (o) inboxes[r].push(o); } }
+    if (spawnT[r] <= 0) { const pw = SEATS.reduce((a, x) => a + (x.r === r && S.lv[x.idx] > 0 ? seatBase(x) : 0), 0); spawnT[r] = 3.2 / (1 + 0.35 * pw + 0.2 * S.up.mkt); if (inboxes[r].length < printerCap(r)) { const o = newOrder(r); if (o) inboxes[r].push(o); } }
   }
   autoTimer += dt; if (autoTimer >= 1) {
     autoTimer -= 1; S.autoRate = S.autoRate * 0.97 + autoAcc * 0.03; autoAcc = 0; S.incRate = S.incRate * 0.98 + incAcc * 0.02; incAcc = 0;
@@ -1708,6 +1724,14 @@ function renderOffice() {
   h += `<h3>🐾 Pets (+3% de velocidade cada)</h3>`;
   PETS.forEach(p => { const own = S.pets.includes(p.id);
     h += `<div class="item"><div class="ic">${p.ic}</div><div class="tx"><div class="nm">${p.nm}</div><div class="ds">Passeia pelo escritório e anima a equipe</div></div>${own ? '<button class="btn dark" disabled>✓</button>' : `<button class="btn" data-pet="${p.id}" ${S.money < p.p ? 'disabled' : ''}>${fmt(p.p)}</button>`}</div>`; });
+  h += `<h3>📦 Capacidade por estação</h3>`;
+  for (let r = 0; r < S.rooms; r++) {
+    const plv = S.stCap[r].p || 0, olv = S.stCap[r].o || 0, pc = printerUpCost(r), oc = outUpCost(r), stn = STATIONS[r].name;
+    h += `<div class="item"><div class="ic">📥</div><div class="tx"><div class="nm">Impressora · ${stn}</div><div class="ds">+4 pedidos na fila por nível · atual: ${printerCap(r)}</div><div class="bar"><i style="width:${plv / CAP_MAX * 100}%"></i></div><div class="lv">Nível ${plv}/${CAP_MAX}</div></div>
+      <button class="btn gold" data-pc="${r}" ${pc === Infinity || S.money < pc ? 'disabled' : ''}>${pc === Infinity ? 'MÁX' : fmt(pc)}</button></div>`;
+    h += `<div class="item"><div class="ic">💾</div><div class="tx"><div class="nm">Bandejas prontas · ${stn}</div><div class="ds">+8 disquetes em todas as mesas do setor · atual: ${outCap(r)}</div><div class="bar"><i style="width:${olv / CAP_MAX * 100}%"></i></div><div class="lv">Nível ${olv}/${CAP_MAX}</div></div>
+      <button class="btn gold" data-oc="${r}" ${oc === Infinity || S.money < oc ? 'disabled' : ''}>${oc === Infinity ? 'MÁX' : fmt(oc)}</button></div>`;
+  }
   h += `<h3>✨ Upgrade visual das estações (+5% por nível na estação)</h3>`;
   for (let r = 0; r < S.rooms; r++) { const l = S.vis[r] || 0, c = visCost(r), nx = VISUP[l];
     h += `<div class="item"><div class="ic">${nx ? nx.ic : '🏆'}</div><div class="tx"><div class="nm">${STATIONS[r].name}</div><div class="ds">${nx ? 'Próximo: ' + nx.nm + ' · ' + nx.ds : 'Estação no visual máximo'}</div><div class="bar"><i style="width:${l / 3 * 100}%"></i></div><div class="lv">Nível ${l}/3</div></div>
@@ -1728,6 +1752,8 @@ $('ofBody').addEventListener('click', e => {
   else if (d.decor) { const it = DECOR.find(x => x.id === d.decor); if (!S.decor.includes(it.id) && pay(it.p)) { S.decor.push(it.id); buildDecor(it.id); afterBuild(); toast(`${it.ic} ${it.nm} instalado!`); } }
   else if (d.pet) { const it = PETS.find(x => x.id === d.pet); if (!S.pets.includes(it.id) && pay(it.p)) { S.pets.push(it.id); spawnPet(it.id); toast(`${it.ic} ${it.nm} chegou no escritório!`); } }
   else if (d.vis !== undefined) { const r = +d.vis; if (pay(visCost(r))) { S.vis[r] = (S.vis[r] || 0) + 1; buildVis(r); afterBuild(); toast(`✨ ${STATIONS[r].name}: ${VISUP[S.vis[r] - 1].nm}!`); } }
+  else if (d.pc !== undefined) { const r = +d.pc; if (pay(printerUpCost(r))) { S.stCap[r].p++; toast(`📥 Impressora (${STATIONS[r].name}): até ${printerCap(r)} pedidos!`); } }
+  else if (d.oc !== undefined) { const r = +d.oc; if (pay(outUpCost(r))) { S.stCap[r].o++; toast(`💾 Bandejas (${STATIONS[r].name}): até ${outCap(r)} prontos!`); } }
   else if (b.id === 'presBtn') { if (!presArm) { presArm = true; renderOffice(); return; } doPrestige(); return; }
   else return;
   track('upgrade', 1); presArm = false; renderOffice(); save();
@@ -1848,7 +1874,7 @@ let secN = 0;
 function secTick() {
   secN++; ensureDay(); if (secN % 2) return;
   checkAch();
-  TABLES.forEach(T => { if (T.r >= S.rooms) return; const full = TR[T.ti].out.length >= OUTMAX; if (full && !prevFull[T.ti]) alertMsg('full' + T.ti, `⚠️ Bandeja cheia: mesa ${T.name} (${STATIONS[T.r].name})`); prevFull[T.ti] = full; });
+  TABLES.forEach(T => { if (T.r >= S.rooms) return; const full = TR[T.ti].out.length >= outCap(T.r); if (full && !prevFull[T.ti]) alertMsg('full' + T.ti, `⚠️ Bandeja cheia: mesa ${T.name} (${STATIONS[T.r].name})`); prevFull[T.ti] = full; });
   activePads.forEach(p => { const paid = padPaid(p), ok = S.money >= p.price - paid; if (ok && !prevAfford[p.key]) alertMsg('pad' + p.key, `💸 Dá para ${p.seat ? 'contratar ' + p.name : 'abrir a ' + p.name}!`); prevAfford[p.key] = ok; });
 }
 $('alertBtn').onclick = () => { S.alerts = !S.alerts; $('alertBtn').textContent = `🔔 Avisos no jogo: ${S.alerts ? 'ligado' : 'desligado'}`; save(); };
@@ -2066,14 +2092,14 @@ function sync(dt) {
     o.bubble.g.position.y = 2.15 + Math.sin(time * 2 + s.idx) * 0.04;
   }
   TABLES.forEach(T => {
-    if (T.r >= S.rooms) return; const o = trayObjs[T.ti], tr = TR[T.ti];
-    syncStack(o.in.st, tr.in); syncStack(o.out.st, tr.out, 'grid');
+    if (T.r >= S.rooms) return; const o = trayObjs[T.ti], tr = TR[T.ti], om = outCap(T.r);
+    syncStack(o.in.st, tr.in); syncStack(o.out.st, tr.out.slice(0, 24), 'grid');
     setLabel(o.in.lb, `📄 ${tr.in.length}/${INMAX}`, 'rgba(14,30,70,.95)', '#fff', '#38bdf8');
-    setLabel(o.out.lb, `💾 ${tr.out.length}/${OUTMAX}`, tr.out.length >= OUTMAX ? 'rgba(120,10,30,.95)' : 'rgba(10,50,25,.95)', '#fff', tr.out.length >= OUTMAX ? '#ff3b3b' : '#4ade80');
+    setLabel(o.out.lb, `💾 ${tr.out.length}/${om}`, tr.out.length >= om ? 'rgba(120,10,30,.95)' : 'rgba(10,50,25,.95)', '#fff', tr.out.length >= om ? '#ff3b3b' : '#4ade80');
   });
   for (let r = 0; r < S.rooms; r++) {
     const ib = inboxes[r], nv = ib.filter(o => o.vip).length, nb = ib.filter(o => o.bug).length, nm = ib.filter(o => o.mega).length;
-    const so = stObjs[r]; syncStack(so.printerStack, ib.slice(0, 14)); setLabel(so.printerLabel, `📥 ${ib.length}${nv ? ' ⭐' + nv : ''}${nb ? ' 🐛' + nb : ''}${nm ? ' 🧩' + nm : ''}`, nv ? 'rgba(90,60,0,.95)' : 'rgba(40,20,70,.95)', '#fff', nv ? '#facc15' : STATIONS[r].acc);
+    const so = stObjs[r]; syncStack(so.printerStack, ib.slice(0, 14)); setLabel(so.printerLabel, `📥 ${ib.length}/${printerCap(r)}${nv ? ' ⭐' + nv : ''}${nb ? ' 🐛' + nb : ''}${nm ? ' 🧩' + nm : ''}`, nv ? 'rgba(90,60,0,.95)' : 'rgba(40,20,70,.95)', '#fff', nv ? '#facc15' : STATIONS[r].acc);
     setLabel(so.hrLabel, `🧑‍🎓 ${S.ints[r].filter(Boolean).length}/${NI}`, 'rgba(40,20,70,.95)', '#fff', STATIONS[r].acc2);
     if (!interns.some(n => n.st === r && n.role === 'coffee' && n.brew > 0)) setBubble(so.coffeeBubble, null);
   }
@@ -2117,7 +2143,8 @@ function hud(dt) {
   if ($('wM').classList.contains('open') && wOpen && S.lv[wOpen.idx] > 0) { const b = $('upBtn'); if (b && S.lv[wOpen.idx] < 10) b.disabled = S.money < upCost(wOpen); }
   if ($('clM').classList.contains('open')) { document.querySelectorAll('[data-pow]').forEach(b => { const it = POWERS.find(p => p.k === b.dataset.pow); b.disabled = S.money < powCost(it); });
     document.querySelectorAll('[data-buyo]').forEach(b => { const o = OUTFITS.find(o => o.id === b.dataset.buyo); b.disabled = o.p < 0 || S.money < o.p; }); document.querySelectorAll('[data-buya]').forEach(b => b.disabled = S.money < ACCS.find(a => a.id === b.dataset.buya).p); }
-  if ($('hrM').classList.contains('open')) { document.querySelectorAll('[data-hire]').forEach(b => b.disabled = S.money < iCost(hrOpen, +b.dataset.hire)); document.querySelectorAll('[data-iup]').forEach(b => b.disabled = S.money < iUpCost(hrOpen, +b.dataset.iup)); const tb = $('trainBtn'); if (tb) tb.disabled = S.money < trainCost(); }
+  if ($('hrM').classList.contains('open')) { document.querySelectorAll('#hrBody [data-hire]').forEach(b => b.disabled = S.money < iCost(hrOpen, +b.dataset.hire)); document.querySelectorAll('#hrBody [data-iup]').forEach(b => b.disabled = S.money < iUpCost(hrOpen, +b.dataset.iup)); document.querySelectorAll('#hrBody [data-pc]').forEach(b => b.disabled = S.money < printerUpCost(+b.dataset.pc)); document.querySelectorAll('#hrBody [data-oc]').forEach(b => b.disabled = S.money < outUpCost(+b.dataset.oc)); const tb = $('trainBtn'); if (tb) tb.disabled = S.money < trainCost(); }
+  if ($('ofM').classList.contains('open')) { document.querySelectorAll('#ofBody [data-pc]').forEach(b => b.disabled = S.money < printerUpCost(+b.dataset.pc)); document.querySelectorAll('#ofBody [data-oc]').forEach(b => b.disabled = S.money < outUpCost(+b.dataset.oc)); }
 }
 
 // ============================ START ============================
